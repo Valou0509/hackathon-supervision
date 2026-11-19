@@ -2,9 +2,176 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Supervision Process</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supervision Process Open Source</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
 </head>
 <body>
-  <h1>Frontend Nginx opérationnel</h1>
+
+  <!-- Barre de navigation -->
+  <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+    <div class="container-fluid px-4">
+      <span class="navbar-brand fw-semibold">
+        <i class="bi bi-activity text-info me-2"></i>Supervision Process Modbus
+      </span>
+      <span id="api-status" class="badge bg-secondary py-2 px-3">
+        <span class="status-dot bg-warning"></span>Connexion API...
+      </span>
+    </div>
+  </nav>
+
+  <main class="container-fluid px-4 pb-5">
+    <!-- Zone de notifications -->
+    <div id="alert-zone"></div>
+
+    <!-- Navigation par onglets -->
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded-3 shadow-sm d-inline-flex" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-dashboard" type="button">
+          <i class="bi bi-graph-up me-1"></i>Supervision Temps Réel
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-config" type="button">
+          <i class="bi bi-sliders me-1"></i>Configuration Automates
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-export" type="button">
+          <i class="bi bi-filetype-csv me-1"></i>Export Historique CSV
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ONGLET 1 : TABLEAU DE BORD TEMPS RÉEL -->
+      <div class="tab-pane fade show active" id="tab-dashboard">
+        <div id="empty-dashboard" class="alert alert-info d-none">
+          Aucune variable active à surveiller. Ajoutez-en une depuis l'onglet <strong>Configuration Automates</strong>.
+        </div>
+        <div id="charts-container" class="row g-4"></div>
+      </div>
+
+      <!-- ONGLET 2 : PARAMÉTRAGE DES VARIABLES -->
+      <div class="tab-pane fade" id="tab-config">
+        <div class="row g-4">
+          <!-- Formulaire Ajout / Modification -->
+          <div class="col-lg-4">
+            <div class="card shadow-sm">
+              <div class="card-header bg-white fw-semibold py-3" id="form-title">
+                <i class="bi bi-plus-circle me-1 text-primary"></i>Ajouter une variable
+              </div>
+              <div class="card-body">
+                <form id="variable-form">
+                  <input type="hidden" id="var-id">
+                  <div class="mb-3">
+                    <label for="var-nom" class="form-label">Nom de la variable</label>
+                    <input type="text" class="form-control" id="var-nom" placeholder="Ex : Niveau Cuve (%)" required>
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col-8">
+                      <label for="var-ip" class="form-label">Adresse IP / Hôte automate</label>
+                      <input type="text" class="form-control" id="var-ip" placeholder="Ex : modbus-sim ou 192.168.1.10" required>
+                    </div>
+                    <div class="col-4">
+                      <label for="var-port" class="form-label">Port</label>
+                      <input type="number" class="form-control" id="var-port" value="502" min="1" max="65535" required>
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <label for="var-registre" class="form-label">Registre Modbus</label>
+                      <input type="number" class="form-control" id="var-registre" min="0" placeholder="Ex : 2" required>
+                    </div>
+                    <div class="col-6">
+                      <label for="var-freq" class="form-label">Fréquence (sec)</label>
+                      <input type="number" class="form-control" id="var-freq" value="5" min="1" required>
+                    </div>
+                  </div>
+                  <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="var-actif" checked>
+                    <label class="form-check-label" for="var-actif">Surveillance active</label>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1" id="btn-submit-var">
+                      <i class="bi bi-save me-1"></i>Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary d-none" id="btn-cancel-edit">
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tableau des variables configurées -->
+          <div class="col-lg-8">
+            <div class="card shadow-sm">
+              <div class="card-header bg-white fw-semibold py-3">
+                <i class="bi bi-cpu me-1 text-primary"></i>Variables configurées
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Nom</th>
+                      <th>Automate (IP:Port)</th>
+                      <th>Registre</th>
+                      <th>Fréquence</th>
+                      <th>État</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="variables-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ONGLET 3 : EXPORT CSV -->
+      <div class="tab-pane fade" id="tab-export">
+        <div class="card shadow-sm" style="max-width: 650px;">
+          <div class="card-header bg-white fw-semibold py-3">
+            <i class="bi bi-download me-1 text-success"></i>Exporter l'historique des mesures (CSV)
+          </div>
+          <div class="card-body">
+            <form id="export-form">
+              <div class="mb-3">
+                <label for="export-var-id" class="form-label">Variable à exporter</label>
+                <select class="form-select" id="export-var-id" required></select>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label for="export-debut" class="form-label">Date / Heure de début <small class="text-muted">(optionnel)</small></label>
+                  <input type="datetime-local" class="form-control" id="export-debut">
+                </div>
+                <div class="col-md-6">
+                  <label for="export-fin" class="form-label">Date / Heure de fin <small class="text-muted">(optionnel)</small></label>
+                  <input type="datetime-local" class="form-control" id="export-fin">
+                </div>
+              </div>
+              <p class="text-muted small mb-3">
+                Laissez les dates vides pour exporter l'intégralité de l'historique enregistré pour la variable sélectionnée.
+              </p>
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-filetype-csv me-1"></i>Télécharger le fichier CSV
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
